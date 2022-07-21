@@ -6,6 +6,8 @@ export class StringCalculator{
             return "0";
         }
 
+        numberList.split()
+
         return "";
     }
     
