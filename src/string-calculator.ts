@@ -9,34 +9,74 @@ export class StringCalculator{
 
     public summation(numberList:string): string {
 
-        if(numberList.length=="".length){
+        if(numberList.length==0){
             return "0";
         }
 
+        let result:number = 0;
+        let errorMessage:string = "";
+
         let regex = this.createRegex(numberList);
+        let customSep:string = this.getCustomSeparator(numberList);
+        if(customSep.trim().length!=0) {
+            numberList = numberList.substring(customSep.length+3); // remove custom separator from number list
+        }
+
         let listOfNumbers: string[] = numberList.split(regex);
+        let lastError: Error = null;
+        let isUnexpectedEOLAdded: boolean = false;
         
         listOfNumbers.forEach(number => {
             try{
                 this.checkForErros(numberList,number);
+                result += Number(number);
             } catch(Error) {
                 if(Error instanceof CommaFoundException) {
+                    let position:number = this.getIndexOfUnexpectedComma(numberList);
+                    errorMessage.concat('\nNumber expected but \',\' found at position ${position}.');
+                    lastError = new CommaFoundException;
 
                 } else if(Error instanceof CustomSeparatorFoundException) {
+                    let position:number = this.getIndexOfUnexpectedCustomSeparator(numberList);
+                    errorMessage.concat("\nNumber expected but \'${customSep}\' found at position ${position}.'");
+                    lastError = new CustomSeparatorFoundException;
 
                 } else if(Error instanceof EndOfLineFoundException) {
+                    let position:number = this.getIndexOfUnexpectedEndOfLine(numberList);
+                    errorMessage.concat("\nNumber expected but \'\\n\' found at position ${position}.'");
+                    lastError = new LastNumberMissedException;
 
                 } else if(Error instanceof LastNumberMissedException) {
+                    if(!isUnexpectedEOLAdded) {
+                        errorMessage.concat("\nNumber expected but EOF found.");
+                        isUnexpectedEOLAdded = true;
+                    }
+                    lastError = new LastNumberMissedException;
 
                 } else if(Error instanceof NegativeNumberException) {
+                    if(lastError instanceof NegativeNumberException) {
+                        errorMessage.concat(", "+number);
+                    } else {
+                        errorMessage.concat("\nNegative not allowed : ");
+                    }
 
+                    lastError = new NegativeNumberException;
                 } else if(Error instanceof NumberNotNumericException) {
+                    //let unexpectedChar = this.getUnexpectedChar(number);
+                    //let position = numberList.indexOf(unexpectedChar);
 
+                    errorMessage.concat("${sep}")
+
+                    lastError = new NumberNotNumericException;
                 }
             }
         });
 
-        return "";
+
+        if(errorMessage.trim().length!=0) {
+            return errorMessage;
+        }
+        return result.toString();
     }
 
     private createRegex(numberList: string): string {
@@ -107,5 +147,26 @@ export class StringCalculator{
         if(numberList.endsWith(",")||numberList.endsWith("\n")||(numberList.endsWith(customSep)&&customSep.trim().length!=0)) {
             throw new LastNumberMissedException();
         }
+    }
+
+    private getIndexOfUnexpectedComma(numberList:string) :number {
+        if(numberList.includes(",,")) {
+            return numberList.indexOf(",,")+1;
+        }
+
+        return numberList.indexOf("\n,")+1;
+    }
+
+    private getIndexOfUnexpectedCustomSeparator(numberList:string) :number {
+        const customSep = this.getCustomSeparator(numberList);          //may throw err cuz custom separator is removed at one point from number list
+        return numberList.indexOf(customSep.concat(customSep))+1;
+    }
+
+    private getIndexOfUnexpectedEndOfLine(numberList:string) :number {
+        if(numberList.includes(",\n'")) {
+            return numberList.indexOf(",\n")+1;
+        }
+
+        return numberList.indexOf("\n\n")+1;
     }
 }
