@@ -62,8 +62,8 @@ export class StringCalculator{
 
                     lastError = new NegativeNumberException;
                 } else if(Error instanceof NumberNotNumericException) {
-                    //let unexpectedChar = this.getUnexpectedChar(number);
-                    //let position = numberList.indexOf(unexpectedChar);
+                    let unexpectedChar = this.getUnexpectedChar(number);
+                    let position = numberList.indexOf(unexpectedChar);
 
                     errorMessage.concat("${sep}")
 
@@ -137,7 +137,7 @@ export class StringCalculator{
     }
 
     private isNumberNumeric(number: string) {
-        if(!number.match("\\d+?\\.?\\d*")) {
+        if((/^\\d+?\\.?\\d*$/.test(number))) {
             throw new NumberNotNumericException();
         }        
     }
@@ -168,5 +168,20 @@ export class StringCalculator{
         }
 
         return numberList.indexOf("\n\n")+1;
+    }
+
+    private getUnexpectedChar(number:string) :string {
+        let chars:string[] = number.split("");
+        chars.forEach(char =>{
+            try{
+                this.isNumberNumeric(char);
+            } catch (Error) {
+                if(Error instanceof NumberNotNumericException) {
+                    return char;
+                }
+            }
+        });
+
+        return null;
     }
 }
