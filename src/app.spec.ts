@@ -15,7 +15,7 @@ test("Test summation.",()=>
     let res2 = c.summation("1.1,2.2");
 
     expect(res1).toBe("1");
-    expect(res2).toBe("3.3");
+    expect(res2).toBe((1.1+2.2).toString());
 });
 
 test("Test many numbers.",()=>
@@ -24,14 +24,14 @@ test("Test many numbers.",()=>
 
     expect(res).toBe("100");
 });
-
+ 
 test("Test new line separator.",()=>
 {
     let res1 = c.summation("1\n2,3");
     let res2 = c.summation("175.2,\n35");
 
     expect(res1).toBe("6");
-    expect(res2).toBe("Number expected but '\n' found at position 6.");
+    expect(res2).toBe("Number expected but '\\n' found at position 6.");
 });
 
 test("Test missing number in last position.",()=>
