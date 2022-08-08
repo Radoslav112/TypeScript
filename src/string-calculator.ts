@@ -156,7 +156,7 @@ export class StringCalculator{
     }
 
     private isNumberNumeric(number: string) {
-        if((/^\\d+?\\.?\\d*$/.test(number))) { //does not throw exception when number is not numeric example 2,3
+        if(!(/^\d+?(\.\d+)?$/.test(number))) { //does not throw exception when number is not numeric example 2,3
             throw new NumberNotNumericException();
         }        
     }

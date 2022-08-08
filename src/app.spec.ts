@@ -31,7 +31,7 @@ test("Test new line separator.",()=>
     let res2 = c.summation("175.2,\n35");
 
     expect(res1).toBe("6");
-    expect(res2).toBe("Number expected but '\\n' found at position 6.");
+    expect(res2).toBe("Number expected but '\n' found at position 6.".replace(/\n/,"\\n"));
 });
 
 test("Test missing number in last position.",()=>
