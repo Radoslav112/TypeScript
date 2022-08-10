@@ -72,8 +72,8 @@ export class StringCalculator{
                     } else {
                         if(errorMessage.trim().length!=0) {
                             errorMessage=errorMessage.concat('\n');
-                        errorMessage=errorMessage.concat(`Negative not allowed : `);
                         }
+                        errorMessage=errorMessage.concat(`Negative not allowed : `+number);
                     }
 
                     lastError = new NegativeNumberException;
