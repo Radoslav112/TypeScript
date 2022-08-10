@@ -17,7 +17,7 @@ export class StringCalculator{
         let errorMessage:string = "";
 
         let regex = this.createRegex(numberList);
-        let customSep: string;
+        let customSep: string = "";
         if(numberList.includes("//")){
             customSep = this.getCustomSeparator(numberList);
             numberList = numberList.substring(customSep.length+3); // remove custom separator from number list
@@ -103,10 +103,10 @@ export class StringCalculator{
         if(numberList.includes("//")){
             let sep = this.getCustomSeparator(numberList);
             if(
-                sep==="."||sep==="+"||sep==="*"||sep==="?"||
-                sep==="^"||sep==="$"||sep==="("||sep===")"||
-                sep==="{"||sep==="}"||sep==="["||sep==="]"||
-                sep==="|"||sep==="\\"
+                sep==='.'||sep==='+'||sep==='*'||sep==='?'||
+                sep==='^'||sep==='$'||sep==='('||sep===')'||
+                sep==='{'||sep==='}'||sep==='['||sep===']'||
+                sep==='|'||sep==='\\'
             ) {
                 res = "\\".concat(sep);
             } else {
@@ -129,9 +129,8 @@ export class StringCalculator{
 
     private checkForErros(numberList: string, number: string, customSep: string) {
         this.isNumberNegative(number);
-        this.isNumberMissed(numberList,number);
+        this.isNumberMissed(numberList,number,customSep);
         this.isNumberNumeric(number);
-        this.isLastNumberEmpty(numberList,customSep);
     }
 
     private isNumberNegative(number: string) {
@@ -140,8 +139,7 @@ export class StringCalculator{
         }        
     }
 
-    private isNumberMissed(numberList: string, number: string) {
-        const customSep = this.getCustomSeparator(numberList);
+    private isNumberMissed(numberList: string, number: string, customSep: string) {
         if(number.trim().length == 0){
             if(numberList.includes(",,")||numberList.includes("\n,")) {
                 throw new CommaFoundException();
@@ -152,6 +150,9 @@ export class StringCalculator{
             if(customSep.trim().length!=0 && numberList.includes(customSep.concat(customSep))){
                 throw new CustomSeparatorFoundException();                
             }
+            if(numberList.endsWith(",")||numberList.endsWith("\n")||(numberList.endsWith(customSep)&&customSep.trim().length!=0)) {
+                throw new LastNumberMissedException();
+            }
         }
     }
 
@@ -159,12 +160,6 @@ export class StringCalculator{
         if(!(/^\d+?(\.\d+)?$/.test(number))) { //does not throw exception when number is not numeric example 2,3
             throw new NumberNotNumericException();
         }        
-    }
-
-    private isLastNumberEmpty(numberList: string, customSep: string) {
-        if(numberList.endsWith(",")||numberList.endsWith("\n")||(numberList.endsWith(customSep)&&customSep.trim().length!=0)) {
-            throw new LastNumberMissedException();
-        }
     }
 
     private getIndexOfUnexpectedComma(numberList:string) :number {
@@ -190,16 +185,17 @@ export class StringCalculator{
 
     private getUnexpectedChar(number:string) :string {
         let chars:string[] = number.split("");
+        let unexpectedChar:string = "";
         chars.forEach(char =>{
             try{
                 this.isNumberNumeric(char);
             } catch (Error) {
                 if(Error instanceof NumberNotNumericException) {
-                    return char;
+                    unexpectedChar = char;
                 }
             }
         });
 
-        return null;
+        return unexpectedChar;
     }
 }
