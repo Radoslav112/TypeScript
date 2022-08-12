@@ -9,21 +9,21 @@ export class StringCalculator{
 
     public summation(numberList:string): string {
 
-        if(numberList.length==0){
+        if(numberList.length===0){
             return "0";
         }
 
         let result:number = 0;
         let errorMessage:string = "";
 
-        let regex = this.createRegex(numberList);
+        let regexToSplitListIntoNumbers = this.createRegex(numberList);
         let customSep: string = "";
-        if(numberList.includes("//")){
+        if(numberList.includes("//")){ //dont know how not to double the logic
             customSep = this.getCustomSeparator(numberList);
             numberList = numberList.substring(customSep.length+3); // remove custom separator from number list
         }
 
-        let listOfNumbers: string[] = numberList.split(new RegExp(regex));
+        let listOfNumbers: string[] = numberList.split(new RegExp(regexToSplitListIntoNumbers));
         let lastError: Error = null;
         let isUnexpectedEOLAdded: boolean = false;
         
@@ -102,12 +102,7 @@ export class StringCalculator{
         let res = ',|\n';
         if(numberList.includes("//")){
             let sep = this.getCustomSeparator(numberList);
-            if(
-                sep==='.'||sep==='+'||sep==='*'||sep==='?'||
-                sep==='^'||sep==='$'||sep==='('||sep===')'||
-                sep==='{'||sep==='}'||sep==='['||sep===']'||
-                sep==='|'||sep==='\\'
-            ) {
+            if(/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]+/.test(sep)) {
                 res = "\\".concat(sep);
             } else {
                 res = sep;
@@ -184,7 +179,7 @@ export class StringCalculator{
     }
 
     private getUnexpectedChar(number:string) :string {
-        let chars:string[] = number.split("");
+        let chars:string[] = number.split(/\d+?(\.\d+)?/).filter(Boolean);
         let unexpectedChar:string = "";
         chars.forEach(char =>{
             try{
