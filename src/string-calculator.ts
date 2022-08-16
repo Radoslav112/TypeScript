@@ -7,33 +7,32 @@ import { NumberNotNumericException } from "./helpers/number-not-numberic-excepti
 
 export class StringCalculator{
 
-    public summation(numberList:string): string {
+    private numberList: string;
+    private customSep: string;
 
-        if(numberList.length===0){
+    public summation(numberList:string): string {
+        this.numberList = numberList;
+
+        if(this.numberList.length===0){
             return "0";
         }
 
         let result:number = 0;
         let errorMessage:string = "";
 
-        let regexToSplitListIntoNumbers = this.createRegex(numberList);
-        let customSep: string = "";
-        if(numberList.includes("//")){ //dont know how not to double the logic
-            customSep = this.getCustomSeparator(numberList);
-            numberList = numberList.substring(customSep.length+3); // remove custom separator from number list
-        }
+        let regexToSplitListIntoNumbers = this.createRegex();
 
-        let listOfNumbers: string[] = numberList.split(new RegExp(regexToSplitListIntoNumbers));
+        let listOfNumbers: string[] = this.numberList.split(new RegExp(regexToSplitListIntoNumbers));
         let lastError: Error = null;
         let isUnexpectedEOLAdded: boolean = false;
         
         listOfNumbers.forEach(number => {
             try{
-                this.checkForErros(numberList,number,customSep);
+                this.checkForErrors(number);
                 result += Number(number);
             } catch(Error) {
                 if(Error instanceof CommaFoundException) {
-                    let position:number = this.getIndexOfUnexpectedComma(numberList);
+                    let position:number = this.getIndexOfUnexpectedComma();
                     if(errorMessage.trim().length!=0) {
                         errorMessage=errorMessage.concat('\n');
                     }
@@ -41,15 +40,15 @@ export class StringCalculator{
                     lastError = new CommaFoundException;
 
                 } else if(Error instanceof CustomSeparatorFoundException) {
-                    let position:number = this.getIndexOfUnexpectedCustomSeparator(numberList);
+                    let position:number = this.getIndexOfUnexpectedCustomSeparator();
                     if(errorMessage.trim().length!=0) {
                         errorMessage=errorMessage.concat('\n');
                     }
-                    errorMessage=errorMessage.concat(`Number expected but \'${customSep}\' found at position ${position}.`);
+                    errorMessage=errorMessage.concat(`Number expected but \'${this.customSep}\' found at position ${position}.`);
                     lastError = new CustomSeparatorFoundException;
 
                 } else if(Error instanceof EndOfLineFoundException) {
-                    let position:number = this.getIndexOfUnexpectedEndOfLine(numberList);
+                    let position:number = this.getIndexOfUnexpectedEndOfLine();
                     if(errorMessage.trim().length!=0) {
                         errorMessage=errorMessage.concat('\n');
                     }
@@ -79,12 +78,12 @@ export class StringCalculator{
                     lastError = new NegativeNumberException;
                 } else if(Error instanceof NumberNotNumericException) {
                     let unexpectedChar = this.getUnexpectedChar(number);
-                    let position = numberList.indexOf(unexpectedChar);
+                    let position = this.numberList.indexOf(unexpectedChar);
 
                     if(errorMessage.trim().length!=0) {
                         errorMessage=errorMessage.concat('\n');
                     }
-                    errorMessage=errorMessage.concat(`'${customSep}' expected but '${unexpectedChar}' found at position ${position}.`)
+                    errorMessage=errorMessage.concat(`'${this.customSep}' expected but '${unexpectedChar}' found at position ${position}.`)
 
                     lastError = new NumberNotNumericException;
                 }
@@ -98,33 +97,32 @@ export class StringCalculator{
         return result.toString();
     }
 
-    private createRegex(numberList: string): string {
+    private createRegex(): string {
         let res = ',|\n';
-        if(numberList.includes("//")){
-            let sep = this.getCustomSeparator(numberList);
-            if(/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]+/.test(sep)) {
-                res = "\\".concat(sep);
-            } else {
-                res = sep;
-            }
+        const _ = require('lodash'); 
+        if(this.numberList.includes("//")){
+            let sep: string = this.getCustomSeparator();
+            res = _.escapeRegExp(sep);
+            this.customSep = sep;
+            this.numberList = this.numberList.substring(sep.length+3); // remove custom separator from number list
         }
 
         return res;
     }
     
-    private getCustomSeparator(numberList:string):string {
-        let beginOfSep:number = numberList.indexOf("//")+2;
-        let endOfSep:number = numberList.indexOf("\n");
+    private getCustomSeparator():string {
+        let beginOfSep:number = this.numberList.indexOf("//")+2;
+        let endOfSep:number = this.numberList.indexOf("\n");
         if(beginOfSep!=-1){
-            return numberList.substring(beginOfSep,endOfSep);
+            return this.numberList.substring(beginOfSep,endOfSep);
         }
         
         return "";
     }
 
-    private checkForErros(numberList: string, number: string, customSep: string) {
+    private checkForErrors(number: string) {
         this.isNumberNegative(number);
-        this.isNumberMissed(numberList,number,customSep);
+        this.isNumberMissed(number);
         this.isNumberNumeric(number);
     }
 
@@ -134,18 +132,18 @@ export class StringCalculator{
         }        
     }
 
-    private isNumberMissed(numberList: string, number: string, customSep: string) {
+    private isNumberMissed(number: string) {
         if(number.trim().length == 0){
-            if(numberList.includes(",,")||numberList.includes("\n,")) {
+            if(this.numberList.includes(",,")||this.numberList.includes("\n,")) {
                 throw new CommaFoundException();
             }
-            if(numberList.includes(",\n")||numberList.includes("\n\n")) {
+            if(this.numberList.includes(",\n")||this.numberList.includes("\n\n")) {
                 throw new EndOfLineFoundException();
             }
-            if(customSep.trim().length!=0 && numberList.includes(customSep.concat(customSep))){
+            if(this.customSep && this.numberList.includes(this.customSep.concat(this.customSep))){
                 throw new CustomSeparatorFoundException();                
             }
-            if(numberList.endsWith(",")||numberList.endsWith("\n")||(numberList.endsWith(customSep)&&customSep.trim().length!=0)) {
+            if(this.numberList.endsWith(",")||this.numberList.endsWith("\n")||(this.numberList.endsWith(this.customSep)&&this.customSep.trim().length!=0)) {
                 throw new LastNumberMissedException();
             }
         }
@@ -157,25 +155,24 @@ export class StringCalculator{
         }        
     }
 
-    private getIndexOfUnexpectedComma(numberList:string) :number {
-        if(numberList.includes(",,")) {
-            return numberList.indexOf(",,")+1;
+    private getIndexOfUnexpectedComma() :number {
+        if(this.numberList.includes(",,")) {
+            return this.numberList.indexOf(",,")+1;
         }
 
-        return numberList.indexOf("\n,")+1;
+        return this.numberList.indexOf("\n,")+1;
     }
 
-    private getIndexOfUnexpectedCustomSeparator(numberList:string) :number {
-        const customSep = this.getCustomSeparator(numberList);          //may throw err cuz custom separator is removed at one point from number list
-        return numberList.indexOf(customSep.concat(customSep))+1;
+    private getIndexOfUnexpectedCustomSeparator() :number {
+        return this.numberList.indexOf(this.customSep.concat(this.customSep))+1;
     }
 
-    private getIndexOfUnexpectedEndOfLine(numberList:string) :number {
-        if(numberList.includes(',\n')) {
-            return numberList.indexOf(',\n')+1;
+    private getIndexOfUnexpectedEndOfLine() :number {
+        if(this.numberList.includes(',\n')) {
+            return this.numberList.indexOf(',\n')+1;
         }
 
-        return numberList.indexOf("\n\n")+1;
+        return this.numberList.indexOf("\n\n")+1;
     }
 
     private getUnexpectedChar(number:string) :string {
