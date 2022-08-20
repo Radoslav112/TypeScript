@@ -42,12 +42,12 @@ export class StringCalculator {
         }],
         [ErrorCode.EndOfLineFoundErrorCode, (): string => {
             let position: number = this.getIndexOfUnexpectedEndOfLine();
-                    if (this.errorMessage.trim().length != 0) {
-                        this.errorMessage = this.errorMessage.concat('\n');
-                    }
-                    this.errorMessage = this.errorMessage.concat(`Number expected but \'\\n\' found at position ${position}.`);
-                    this.lastErrorCode = ErrorCode.EndOfLineFoundErrorCode;
-                    return this.errorMessage;
+            if (this.errorMessage.trim().length != 0) {
+                this.errorMessage = this.errorMessage.concat('\n');
+            }
+            this.errorMessage = this.errorMessage.concat(`Number expected but \'\\n\' found at position ${position}.`);
+            this.lastErrorCode = ErrorCode.EndOfLineFoundErrorCode;
+            return this.errorMessage;
         }],
         [ErrorCode.LastNumberMissedErrorCode, (): string => {
             if (!this.isUnexpectedEOLAdded) {
@@ -60,8 +60,8 @@ export class StringCalculator {
             this.lastErrorCode = ErrorCode.LastNumberMissedErrorCode;
             return this.errorMessage;
         }],
-        [ErrorCode.NegativeNumberErrorCode, (number:string): string => {
-            if (this.lastErrorCode=== ErrorCode.NegativeNumberErrorCode) {
+        [ErrorCode.NegativeNumberErrorCode, (number: string): string => {
+            if (this.lastErrorCode === ErrorCode.NegativeNumberErrorCode) {
                 this.errorMessage = this.errorMessage.concat(", " + number);
             } else {
                 if (this.errorMessage.trim().length != 0) {
@@ -72,7 +72,18 @@ export class StringCalculator {
             this.lastErrorCode = ErrorCode.NegativeNumberErrorCode;
             return this.errorMessage;
         }],
+        [ErrorCode.NumberNotNumericErrorCode, (number: string): string => {
+            let unexpectedChar = this.getUnexpectedChar(number);
+            let position = this.numberList.indexOf(unexpectedChar);
 
+            if (this.errorMessage.trim().length != 0) {
+                this.errorMessage = this.errorMessage.concat('\n');
+            }
+            this.errorMessage = this.errorMessage.concat(`'${this.customSep}' expected but '${unexpectedChar}' found at position ${position}.`)
+
+            this.lastErrorCode = ErrorCode.NumberNotNumericErrorCode;
+            return this.errorMessage;
+        }]
     ]);
 
     public summation(numberList: string): string {
@@ -83,80 +94,24 @@ export class StringCalculator {
         }
 
         let result: number = 0;
-        let errorMessage: string = "";
-
         let regexToSplitListIntoNumbers = this.createRegex();
-
         let listOfNumbers: string[] = this.numberList.split(new RegExp(regexToSplitListIntoNumbers));
-        let lastError: Error = null;
 
         listOfNumbers.forEach(number => {
-            try {
-                this.checkForErrors(number);
+
+            let err: ErrorCode = this.checkForErrors(number);
+            if(!err) {
                 result += Number(number);
-            } catch (Error) {
-                if (Error instanceof CommaFoundException) {
-                    let position: number = this.getIndexOfUnexpectedComma();
-                    if (errorMessage.trim().length != 0) {
-                        errorMessage = errorMessage.concat('\n');
-                    }
-                    errorMessage = errorMessage.concat(`Number expected but \',\' found at position ${position}.`);
-                    lastError = new CommaFoundException;
-
-                } else if (Error instanceof CustomSeparatorFoundException) {
-                    let position: number = this.getIndexOfUnexpectedCustomSeparator();
-                    if (errorMessage.trim().length != 0) {
-                        errorMessage = errorMessage.concat('\n');
-                    }
-                    errorMessage = errorMessage.concat(`Number expected but \'${this.customSep}\' found at position ${position}.`);
-                    lastError = new CustomSeparatorFoundException;
-
-                } else if (Error instanceof EndOfLineFoundException) {
-                    let position: number = this.getIndexOfUnexpectedEndOfLine();
-                    if (errorMessage.trim().length != 0) {
-                        errorMessage = errorMessage.concat('\n');
-                    }
-                    errorMessage = errorMessage.concat(`Number expected but \'\\n\' found at position ${position}.`);
-                    lastError = new LastNumberMissedException;
-
-                } else if (Error instanceof LastNumberMissedException) {
-                    if (!isUnexpectedEOLAdded) {
-                        if (errorMessage.trim().length != 0) {
-                            errorMessage = errorMessage.concat('\n');
-                        }
-                        errorMessage = errorMessage.concat(`Number expected but EOF found.`);
-                        isUnexpectedEOLAdded = true;
-                    }
-                    lastError = new LastNumberMissedException;
-
-                } else if (Error instanceof NegativeNumberException) {
-                    if (lastError instanceof NegativeNumberException) {
-                        errorMessage = errorMessage.concat(", " + number);
-                    } else {
-                        if (errorMessage.trim().length != 0) {
-                            errorMessage = errorMessage.concat('\n');
-                        }
-                        errorMessage = errorMessage.concat(`Negative not allowed : ` + number);
-                    }
-
-                    lastError = new NegativeNumberException;
-                } else if (Error instanceof NumberNotNumericException) {
-                    let unexpectedChar = this.getUnexpectedChar(number);
-                    let position = this.numberList.indexOf(unexpectedChar);
-
-                    if (errorMessage.trim().length != 0) {
-                        errorMessage = errorMessage.concat('\n');
-                    }
-                    errorMessage = errorMessage.concat(`'${this.customSep}' expected but '${unexpectedChar}' found at position ${position}.`)
-
-                    lastError = new NumberNotNumericException;
-                }
             }
+            else {
+                this.errorMessage = this.map.get(err);
+            }
+
         });
 
 
-        if (errorMessage.trim().length != 0) {
-            return errorMessage;
+        if (this.errorMessage) {
+            return this.errorMessage;
         }
         return result.toString();
     }
@@ -184,39 +139,62 @@ export class StringCalculator {
         return "";
     }
 
-    private checkForErrors(number: string) {
-        this.isNumberNegative(number);
-        this.isNumberMissed(number);
-        this.isNumberNumeric(number);
+    private checkForErrors(number: string):ErrorCode {
+        let err: ErrorCode;
+        
+        err = this.isNumberNegative(number);
+        if(err) {
+            return err;
+        }
+        err = this.isNumberMissed(number);
+        if(err) {
+            return err;
+        }
+        err = this.isNumberNumeric(number);
+        if(err) {
+            return err;
+        }
+        return null;
     }
 
-    private isNumberNegative(number: string) {
+    private isNumberNegative(number: string): ErrorCode {
         if (number.startsWith("-")) {
-            throw new NegativeNumberException();
+            //throw new NegativeNumberException();
+            return ErrorCode.NegativeNumberErrorCode;
         }
+        return null;
     }
 
     private isNumberMissed(number: string) {
         if (number.trim().length == 0) {
             if (this.numberList.includes(",,") || this.numberList.includes("\n,")) {
-                throw new CommaFoundException();
+                //throw new CommaFoundException();
+                return ErrorCode.CommaFoundErrorCode;
             }
             if (this.numberList.includes(",\n") || this.numberList.includes("\n\n")) {
-                throw new EndOfLineFoundException();
+                //throw new EndOfLineFoundException();
+                return ErrorCode.EndOfLineFoundErrorCode;
             }
             if (this.customSep && this.numberList.includes(this.customSep.concat(this.customSep))) {
-                throw new CustomSeparatorFoundException();
+                //throw new CustomSeparatorFoundException();
+                return ErrorCode.CustomSeparatorFoundErrorCode;
             }
             if (this.numberList.endsWith(",") || this.numberList.endsWith("\n") || (this.numberList.endsWith(this.customSep) && this.customSep.trim().length != 0)) {
-                throw new LastNumberMissedException();
+                //throw new LastNumberMissedException();
+                return ErrorCode.LastNumberMissedErrorCode;
             }
         }
+
+        return null;
     }
 
     private isNumberNumeric(number: string) {
         if (!(/^\d+?(\.\d+)?$/.test(number))) {
-            throw new NumberNotNumericException();
+            //throw new NumberNotNumericException();
+            return ErrorCode.NumberNotNumericErrorCode;
         }
+
+        return null;
     }
 
     private getIndexOfUnexpectedComma(): number {
