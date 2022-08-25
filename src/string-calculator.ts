@@ -134,7 +134,6 @@ export class StringCalculator {
         if (number.startsWith("-")) {
             throw new ErrorCodeExeption(ErrorCode.NegativeNumber);
         }
-        return null;
     }
 
     private isNumberMissed(number: string) {
@@ -152,16 +151,12 @@ export class StringCalculator {
                 throw new ErrorCodeExeption(ErrorCode.LastNumberMissed);
             }
         }
-
-        return null;
     }
 
     private isNumberNumeric(number: string) {
         if (!(/^\d+?(\.\d+)?$/.test(number))) {
             throw new ErrorCodeExeption(ErrorCode.NumberNotNumeric);
         }
-
-        return null;
     }
 
     private getIndexOfUncexpectedSeparator(): number {
