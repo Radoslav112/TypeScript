@@ -1,5 +1,5 @@
 import { ErrorCode } from "./helpers/error-code";
-import escapeRegExp from 'lodash';
+import { escapeRegExp } from 'lodash';
 import { ErrorCodeExeption } from "./helpers/error-code-exception";
 
 export class StringCalculator {
@@ -10,34 +10,31 @@ export class StringCalculator {
     private lastErrorCode: ErrorCode = null;
     private isUnexpectedEOLAdded: boolean = false;
     private map = new Map<ErrorCode, any>([
-        [ErrorCode.CommaFound, (): string => {
+        [ErrorCode.CommaFound, () => {
             let position: number = this.getIndexOfUncexpectedSeparator();
             if (this.errorMessage.trim().length != 0) {
                 this.errorMessage = this.errorMessage.concat('\n');
             }
             this.errorMessage = this.errorMessage.concat(`Number expected but \',\' found at position ${position}.`);
             this.lastErrorCode = ErrorCode.CommaFound;
-            return this.errorMessage;
         }],
-        [ErrorCode.CustomSeparatorFound, (): string => {
+        [ErrorCode.CustomSeparatorFound, () => {
             let position: number = this.getIndexOfUncexpectedSeparator();
             if (this.errorMessage.trim().length != 0) {
                 this.errorMessage = this.errorMessage.concat('\n');
             }
             this.errorMessage = this.errorMessage.concat(`Number expected but \'${this.customSeparator}\' found at position ${position}.`);
             this.lastErrorCode = ErrorCode.CustomSeparatorFound;
-            return this.errorMessage;
         }],
-        [ErrorCode.EndOfLineFound, (): string => {
+        [ErrorCode.EndOfLineFound, () => {
             let position: number = this.getIndexOfUncexpectedSeparator();
             if (this.errorMessage.trim().length != 0) {
                 this.errorMessage = this.errorMessage.concat('\n');
             }
             this.errorMessage = this.errorMessage.concat(`Number expected but \'\\n\' found at position ${position}.`);
             this.lastErrorCode = ErrorCode.EndOfLineFound;
-            return this.errorMessage;
         }],
-        [ErrorCode.LastNumberMissed, (): string => {
+        [ErrorCode.LastNumberMissed, () => {
             if (!this.isUnexpectedEOLAdded) {
                 if (this.errorMessage.trim().length != 0) {
                     this.errorMessage = this.errorMessage.concat('\n');
@@ -46,9 +43,8 @@ export class StringCalculator {
                 this.isUnexpectedEOLAdded = true;
             }
             this.lastErrorCode = ErrorCode.LastNumberMissed;
-            return this.errorMessage;
         }],
-        [ErrorCode.NegativeNumber, (number: string): string => {
+        [ErrorCode.NegativeNumber, (number: string) => {
             if (this.lastErrorCode === ErrorCode.NegativeNumber) {
                 this.errorMessage = this.errorMessage.concat(", " + number);
             } else {
@@ -58,9 +54,8 @@ export class StringCalculator {
                 this.errorMessage = this.errorMessage.concat(`Negative not allowed : ` + number);
             }
             this.lastErrorCode = ErrorCode.NegativeNumber;
-            return this.errorMessage;
         }],
-        [ErrorCode.NumberNotNumeric, (number: string): string => {
+        [ErrorCode.NumberNotNumeric, (number: string) => {
             let unexpectedChar = this.getUnexpectedChar(number);
             let position = this.numberList.indexOf(unexpectedChar);
 
@@ -70,7 +65,6 @@ export class StringCalculator {
             this.errorMessage = this.errorMessage.concat(`'${this.customSeparator}' expected but '${unexpectedChar}' found at position ${position}.`)
 
             this.lastErrorCode = ErrorCode.NumberNotNumeric;
-            return this.errorMessage;
         }]
     ]);
 
@@ -91,7 +85,7 @@ export class StringCalculator {
                 result += Number(number);
             } catch (error) {
                 if(error instanceof ErrorCodeExeption) {
-                    this.errorMessage = this.map.get(error.getErrorCode());
+                    this.map.get(error.getErrorCode());
                 }
             }
         });
@@ -115,9 +109,10 @@ export class StringCalculator {
     }
 
     private getCustomSeparator(): string {
-        let beginOfSep: number = this.numberList.indexOf("//") + 2;
+        let beginOfSep: number = this.numberList.indexOf("//"); // if there is no "//" in number list the position will be -1 (falsy)
         let endOfSep: number = this.numberList.indexOf("\n");
         if (beginOfSep) {
+            beginOfSep += 2; // make position of separator start after "//"
             return this.numberList.substring(beginOfSep, endOfSep);
         }
 
