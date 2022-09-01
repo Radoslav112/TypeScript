@@ -6,7 +6,7 @@ export class StringCalculator {
 
     private numberList: string;
     private customSeparator: string;
-    private errorMessage: string;
+    private errorMessage: string = "";
     private lastErrorCode: ErrorCode = null;
     private isUnexpectedEOLAdded: boolean = false;
     private map = new Map<ErrorCode, any>([
@@ -85,7 +85,8 @@ export class StringCalculator {
                 result += Number(number);
             } catch (error) {
                 if(error instanceof ErrorCodeExeption) {
-                    this.map.get(error.getErrorCode());
+                    const func = this.map.get(error.getErrorCode());
+                    func();
                 }
             }
         });
