@@ -6,65 +6,39 @@ export class StringCalculator {
 
     private numberList: string;
     private customSeparator: string;
-    private errorMessage: string = "";
+    private errorMessages: string[] = [];
     private lastErrorCode: ErrorCode = null;
     private isUnexpectedEOLAdded: boolean = false;
     private map = new Map<ErrorCode, any>([
         [ErrorCode.CommaFound, (number: string) => {
             let position: number = this.getIndexOfUncexpectedSeparator();
-            if (this.errorMessage.trim().length != 0) {
-                this.errorMessage = this.errorMessage.concat('\n');
-            }
-            this.errorMessage = this.errorMessage.concat(`Number expected but \',\' found at position ${position}.`);
-            this.lastErrorCode = ErrorCode.CommaFound;
+            return `Number expected but \',\' found at position ${position}.`;
         }],
         [ErrorCode.CustomSeparatorFound, (number: string) => {
             let position: number = this.getIndexOfUncexpectedSeparator();
-            if (this.errorMessage.trim().length != 0) {
-                this.errorMessage = this.errorMessage.concat('\n');
-            }
-            this.errorMessage = this.errorMessage.concat(`Number expected but \'${this.customSeparator}\' found at position ${position}.`);
-            this.lastErrorCode = ErrorCode.CustomSeparatorFound;
+            return `Number expected but \'${this.customSeparator}\' found at position ${position}.`;
         }],
         [ErrorCode.EndOfLineFound, (number: string) => {
             let position: number = this.getIndexOfUncexpectedSeparator();
-            if (this.errorMessage.trim().length != 0) {
-                this.errorMessage = this.errorMessage.concat('\n');
-            }
-            this.errorMessage = this.errorMessage.concat(`Number expected but \'\\n\' found at position ${position}.`);
-            this.lastErrorCode = ErrorCode.EndOfLineFound;
+            return `Number expected but \'\\n\' found at position ${position}.`;
         }],
         [ErrorCode.LastNumberMissed, (number: string) => {
             if (!this.isUnexpectedEOLAdded) {
-                if (this.errorMessage.trim().length != 0) {
-                    this.errorMessage = this.errorMessage.concat('\n');
-                }
-                this.errorMessage = this.errorMessage.concat(`Number expected but EOF found.`);
                 this.isUnexpectedEOLAdded = true;
+                return `Number expected but EOF found.`;
             }
-            this.lastErrorCode = ErrorCode.LastNumberMissed;
         }],
         [ErrorCode.NegativeNumber, (number: string) => {
             if (this.lastErrorCode === ErrorCode.NegativeNumber) {
-                this.errorMessage = this.errorMessage.concat(", " + number);
+                return ", " + number;
             } else {
-                if (this.errorMessage.trim().length != 0) {
-                    this.errorMessage = this.errorMessage.concat('\n');
-                }
-                this.errorMessage = this.errorMessage.concat(`Negative not allowed : ` + number);
+                return `Negative not allowed : ` + number;
             }
-            this.lastErrorCode = ErrorCode.NegativeNumber;
         }],
         [ErrorCode.NumberNotNumeric, (number: string) => {
             let unexpectedChar = this.getUnexpectedChar(number);
             let position = this.numberList.indexOf(unexpectedChar);
-
-            if (this.errorMessage.trim().length != 0) {
-                this.errorMessage = this.errorMessage.concat('\n');
-            }
-            this.errorMessage = this.errorMessage.concat(`'${this.customSeparator}' expected but '${unexpectedChar}' found at position ${position}.`)
-
-            this.lastErrorCode = ErrorCode.NumberNotNumeric;
+            return`'${this.customSeparator}' expected but '${unexpectedChar}' found at position ${position}.`;
         }]
     ]);
 
@@ -86,14 +60,19 @@ export class StringCalculator {
             } catch (error) {
                 if(error instanceof ErrorCodeExeption) {
                     const func = this.map.get(error.getErrorCode());
-                    func(number);
+                    if(this.lastErrorCode === ErrorCode.NegativeNumber && error.getErrorCode() === ErrorCode.NegativeNumber){ //if last err i negative number and trown err is negative number we get into block
+                        this.errorMessages[this.errorMessages.length-1] += func(number); //last error msg in errorMessages is negative number and we know this err is also negative number, so instead of pushing another ms we change last msg in array so it is complete when we are done
+                    } else {
+                        this.errorMessages.push(func(number));
+                    }
+                    this.lastErrorCode = error.getErrorCode();
                 }
             }
         });
 
 
-        if (this.errorMessage) {
-            return this.errorMessage;
+        if (this.errorMessages.length) {
+            return this.errorMessages.join('\n');
         }
         return result.toString();
     }
